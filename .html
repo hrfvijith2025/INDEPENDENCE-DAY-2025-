@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ഫോട്ടോ ഫ്രെയിം ആപ്ലിക്കേഷൻ</title>
+    <!-- Tailwind CSS ഉപയോഗിച്ചുള്ള സ്റ്റൈലിംഗ് -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f0f4f8; /* നേരിയ നീല ഗ്രേ ബാക്ക്ഗ്രൗണ്ട് */
+        }
+        .container {
+            max-width: 1000px;
+        }
+        .frame-container {
+            position: relative;
+            width: 100%;
+            padding-top: 100%; /* ഒരു ചതുരാകൃതിയിലുള്ള കണ്ടെയ്നർ ഉണ്ടാക്കാൻ */
+        }
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #fff;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1); /* ഷാഡോ ചേർക്കുന്നു */
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+    <div class="container bg-white rounded-3xl shadow-2xl p-8 md:p-12 text-center">
+        <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-6">ഫോട്ടോ ഫ്രെയിം ജനറേറ്റർ</h1>
+        <p class="text-gray-600 mb-8">നിങ്ങളുടെ ഫോട്ടോ അപ്‌ലോഡ് ചെയ്ത് ഈ ഫ്രെയിമിൽ ചേർക്കുക.</p>
+
+        <!-- ഫോട്ടോയും ഫ്രെയിമും പ്രദർശിപ്പിക്കുന്നതിനുള്ള ക്യാൻവാസ് -->
+        <div class="frame-container mb-8">
+            <canvas id="photoCanvas" class="border-4 border-purple-500"></canvas>
+        </div>
+
+        <!-- ഉപഭോക്താവിൽ നിന്നുള്ള ഇൻപുട്ടുകൾ -->
+        <div class="flex flex-col md:flex-row items-center justify-center gap-4 mb-8">
+            <div class="w-full md:w-1/3">
+                <label class="block text-gray-700 font-semibold mb-2">നിങ്ങളുടെ ഫോട്ടോ അപ്‌ലോഡ് ചെയ്യുക</label>
+                <input type="file" id="photoInput" accept="image/*" class="w-full text-gray-700 bg-gray-100 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-purple-400">
+            </div>
+            <div class="w-full md:w-1/3">
+                <label class="block text-gray-700 font-semibold mb-2">പേര്</label>
+                <input type="text" id="nameInput" placeholder="നിങ്ങളുടെ പേര്" class="w-full text-gray-700 bg-gray-100 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-purple-400">
+            </div>
+            <div class="w-full md:w-1/3">
+                <label class="block text-gray-700 font-semibold mb-2">സ്ഥലം</label>
+                <input type="text" id="placeInput" placeholder="നിങ്ങളുടെ സ്ഥലം" class="w-full text-gray-700 bg-gray-100 rounded-lg py-2 px-4 focus:outline-none focus:ring-2 focus:ring-purple-400">
+            </div>
+        </div>
+
+        <!-- ഡൗൺലോഡ് ബട്ടൺ -->
+        <button id="downloadButton" class="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white font-bold py-3 px-8 rounded-full transition-transform transform hover:scale-105 shadow-lg">
+            ചിത്രം ഡൗൺലോഡ് ചെയ്യുക
+        </button>
+    </div>
+
+    <script>
+        window.onload = function() {
+            // ആവശ്യമായ HTML ഘടകങ്ങൾ എടുക്കുന്നു
+            const canvas = document.getElementById('photoCanvas');
+            const ctx = canvas.getContext('2d');
+            const photoInput = document.getElementById('photoInput');
+            const nameInput = document.getElementById('nameInput');
+            const placeInput = document.getElementById('placeInput');
+            const downloadButton = document.getElementById('downloadButton');
+
+            // Canvas-ന്റെ വലുപ്പം സജ്ജമാക്കുന്നു
+            canvas.width = 800;
+            canvas.height = 800;
+
+            let frameImage = new Image();
+            let userPhoto = null;
+            let currentFrameUrl = 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjoY4AvfD4C4YO791K1LBWAJ1ayXiOgLcVLOmlyjpcGrVviRJLOcDzbsH0py-MBsdD2lChVoVSgULcFIKFhrWPw1fbr88LeifUNbAiyLSB_hwzAnxkq6GQmE6Zax0t9gO9_IzdL8rfrs-oABif2RPoD1Hn6MRmVxmfCK09Jpq3ZBSHBWMQAnMZjx5xXXd4/s1200/NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN.png';
+            
+            // ബ്ലോഗർ ചിത്ര ലിങ്കിന്റെ വലിപ്പം മാറ്റുന്നു
+            currentFrameUrl = currentFrameUrl.replace('/s320/', '/s1200/');
+
+            frameImage.src = currentFrameUrl;
+            
+            // ഫ്രെയിം ലോഡ് ചെയ്ത ശേഷം ക്യാൻവാസ് വരയ്ക്കുന്നു
+            frameImage.onload = function() {
+                drawCanvas();
+            };
+
+            // ഫ്രെയിം ലോഡ് ചെയ്യാൻ സാധിച്ചില്ലെങ്കിൽ ഒരു എറർ മെസ്സേജ് കാണിക്കുന്നു.
+            frameImage.onerror = function() {
+                console.error("Failed to load the frame image.");
+                // alert("ഫ്രെയിം ചിത്രം ലോഡ് ചെയ്യുന്നതിൽ പിഴവ് സംഭവിച്ചു. ദയവായി പിന്നീട് ശ്രമിക്കുക.");
+                ctx.fillStyle = '#f0f4f8';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#666';
+                ctx.font = '24px Inter';
+                ctx.textAlign = 'center';
+                ctx.fillText('ഫ്രെയിം ലോഡ് ചെയ്യാനായില്ല.', canvas.width / 2, canvas.height / 2);
+            };
+
+            // Canvas-ൽ എല്ലാം വരയ്ക്കുന്നതിനുള്ള പ്രധാന ഫംഗ്ഷൻ
+            function drawCanvas() {
+                // Canvas ക്ലിയർ ചെയ്യുന്നു
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Canvas-ന്റെ ബാക്ക്ഗ്രൗണ്ട് വരയ്ക്കുന്നു
+                ctx.fillStyle = '#f0f4f8';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // ഉപയോക്താവിൻ്റെ ഫോട്ടോ ഉണ്ടെങ്കിൽ അത് വരയ്ക്കുന്നു
+                if (userPhoto) {
+                    // ഫോട്ടോയുടെ വലുപ്പവും സ്ഥാനവും കണക്കാക്കുന്നു
+                    const photoSize = Math.min(userPhoto.width, userPhoto.height);
+                    const sourceX = (userPhoto.width - photoSize) / 2;
+                    const sourceY = (userPhoto.height - photoSize) / 2;
+                    const destX = 140; // ഫോട്ടോ വരയ്ക്കേണ്ട x കോർഡിനേറ്റ്
+                    const destY = 140; // ഫോട്ടോ വരയ്ക്കേണ്ട y കോർഡിനേറ്റ്
+                    const destSize = 520; // ഫോട്ടോയുടെ വലുപ്പം (വൃത്തത്തിനുള്ളിൽ ഒതുങ്ങാൻ)
+                    
+                    // ഫോട്ടോ ഒരു വൃത്തത്തിനുള്ളിൽ ക്ലിപ്പ് ചെയ്യാൻ
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.arc(canvas.width / 2, canvas.height / 2, 260, 0, Math.PI * 2, true);
+                    ctx.closePath();
+                    ctx.clip();
+                    ctx.drawImage(userPhoto, sourceX, sourceY, photoSize, photoSize, destX, destY, destSize, destSize);
+                    ctx.restore();
+                } else {
+                    // ഫോട്ടോ ഇല്ലെങ്കിൽ ഒരു പ്ലെയ്‌സ്‌ഹോൾഡർ കാണിക്കുന്നു
+                    ctx.fillStyle = '#cccccc';
+                    ctx.beginPath();
+                    ctx.arc(canvas.width / 2, canvas.height / 2, 260, 0, Math.PI * 2, true);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.fillStyle = '#666666';
+                    ctx.font = '24px Inter';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('നിങ്ങളുടെ ഫോട്ടോ അപ്‌ലോഡ് ചെയ്യുക', canvas.width / 2, canvas.height / 2);
+                }
+
+                // ഫ്രെയിം ചിത്രം വരയ്ക്കുന്നു, ഇത് എപ്പോഴും ഏറ്റവും മുകളിലായിരിക്കും
+                ctx.drawImage(frameImage, 0, 0, canvas.width, canvas.height);
+
+                // പേരിനും സ്ഥലത്തിനുമുള്ള ബോക്സ് വരയ്ക്കുന്നു
+                const nameText = nameInput.value;
+                const placeText = placeInput.value;
+                
+                if (nameText || placeText) {
+                    const nameFontSize = 36;
+                    const placeFontSize = 24;
+                    const padding = 10;
+                    const margin = 10;
+                    
+                    // പേരിന്റെയും സ്ഥലത്തിന്റെയും വീതി കണക്കാക്കുന്നു
+                    ctx.font = `bold ${nameFontSize}px Inter`;
+                    const nameWidth = ctx.measureText(nameText).width;
+                    
+                    ctx.font = `${placeFontSize}px Inter`;
+                    const placeWidth = ctx.measureText(placeText).width;
+                    
+                    // ബോക്സിന്റെ മൊത്തം വീതിയും ഉയരവും കണക്കാക്കുന്നു
+                    const boxWidth = Math.max(nameWidth, placeWidth) + padding * 2;
+                    const boxHeight = nameFontSize + placeFontSize + padding * 2 + margin;
+                    
+                    const boxX = (canvas.width - boxWidth) / 2;
+                    const boxY = canvas.height - 100 - (nameFontSize + placeFontSize + padding + margin) / 2;
+                    
+                    // ബോക്സ് വരയ്ക്കുന്നു
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'; // അർദ്ധസുതാര്യമായ വെളുത്ത നിറം
+                    ctx.fillRect(boxX, boxY, boxWidth, boxHeight);
+                    
+                    // പേരും സ്ഥലവും ബോക്സിനുള്ളിൽ എഴുതുന്നു
+                    ctx.fillStyle = '#000000';
+                    ctx.font = `bold ${nameFontSize}px Inter`;
+                    ctx.textAlign = 'center';
+                    ctx.fillText(nameText, canvas.width / 2, boxY + nameFontSize + padding);
+                    
+                    ctx.fillStyle = '#444444';
+                    ctx.font = `${placeFontSize}px Inter`;
+                    ctx.fillText(placeText, canvas.width / 2, boxY + nameFontSize + placeFontSize + padding + margin);
+                }
+            }
+
+            // ഫോട്ടോ ഇൻപുട്ടിനായി ഒരു ഇവൻ്റ് ലിസണർ
+            photoInput.addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        userPhoto = new Image();
+                        userPhoto.onload = function() {
+                            drawCanvas();
+                        };
+                        userPhoto.src = e.target.result;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // പേരിനും സ്ഥലത്തിനുമുള്ള ഇൻപുട്ടുകൾക്കായി ഇവൻ്റ് ലിസണറുകൾ
+            nameInput.addEventListener('input', drawCanvas);
+            placeInput.addEventListener('input', drawCanvas);
+
+            // ഡൗൺലോഡ് ബട്ടണിനായി ഒരു ഇവൻ്റ് ലിസണർ
+            downloadButton.addEventListener('click', function() {
+                // ക്യാൻവാസ് ഒരു ചിത്രമായി ഡൗൺലോഡ് ചെയ്യുന്നു
+                const link = document.createElement('a');
+                link.download = 'Independence_Day_Photo.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        };
+    </script>
+</body>
+</html>
